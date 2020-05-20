@@ -42,12 +42,11 @@ public class MoveCommand {
   }
 
 
-
   DataColumnHeader handleColumnNode(Node node, int columnNumber) {
     String fieldType = node.selectSingleNode("fieldType").getStringValue();
     String varName = node.selectSingleNode("varName").getStringValue();
 
-    switch(fieldType.toLowerCase()) {
+    switch (fieldType.toLowerCase()) {
       case "string":
         return new StringHeader(node.getName(), columnNumber, varName);
       default:
@@ -69,9 +68,11 @@ public class MoveCommand {
     List<DataColumnHeader> dataHeaders = columnNodes.stream()
       .map(node -> {
         int columnNumber = columnCounter.incrementAndGet();
-        switch(node.getName()) {
-          case "rowNumberCol": return new RowNumHeader(node.getName(), columnNumber);
-          case "descriptionCol": return new DescriptionHeader(node.getName(), columnNumber);
+        switch (node.getName()) {
+          case "rowNumberCol":
+            return new RowNumHeader(node.getName(), columnNumber);
+          case "descriptionCol":
+            return new DescriptionHeader(node.getName(), columnNumber);
           case "org.drools.workbench.models.guided.dtable.shared.model.BRLConditionVariableColumn":
           case "org.drools.workbench.models.guided.dtable.shared.model.BRLActionVariableColumn":
             return handleColumnNode(node, columnNumber);
@@ -94,9 +95,9 @@ public class MoveCommand {
     int maxRowNum = 0;
     XPath rowNumSelector = DocumentHelper.createXPath("data/list/value[" + rowNumHeader.getColumnNumber() + "]");
     List<Node> rowNums = rowNumSelector.selectNodes(documentRoot);
-    for(Node rowNumNode : rowNums) {
+    for (Node rowNumNode : rowNums) {
       String dataType = rowNumNode.selectSingleNode("dataType").getText();
-      if(!"numeric_integer".equalsIgnoreCase(dataType)) {
+      if (!"numeric_integer".equalsIgnoreCase(dataType)) {
         throw new RuntimeException("I am not on the rowNum column. Expected 'numeric_integer' datatype. Found: " + dataType);
       }
       maxRowNum = Math.max(Integer.parseInt(rowNumNode.selectSingleNode("valueNumeric").getText()), maxRowNum);
