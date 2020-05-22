@@ -19,16 +19,20 @@ import java.util.concurrent.Callable;
 
 public class Csv2Gdst implements Callable<Integer> {
 
-  @Option(names = "-m", defaultValue = "extend", description = "Handling mode for existing gdst data: ${COMPLETION-CANDIDATES} (default: ${DEFAULT-VALUE})")
+  @Option(names = "-m", defaultValue = "extend",
+    description = "Handling mode for existing gdst data: ${COMPLETION-CANDIDATES} (default: ${DEFAULT-VALUE})")
   MoveCommand.MoveDataType handlingMode;
 
-  @Option(names = "-i", required = true, paramLabel = "INPUT", description = "input gdst file")
+  @Option(names = "-i", required = true, paramLabel = "INPUT",
+    description = "input gdst file")
   File gdstFile;
 
-  @Option(names = "-o", required = true, paramLabel = "OUTPUT", description = "output gdst file")
+  @Option(names = "-o", required = true, paramLabel = "OUTPUT",
+    description = "output gdst file")
   File outGdstFile;
 
-  @Parameters(arity = "1..*", paramLabel = "CSVs", description = "one ore more CSV files to import")
+  @Parameters(arity = "1..*", paramLabel = "CSVs",
+    description = "one ore more CSV files to import")
   List<File> csvFiles;
 
   public static void main(String... args) throws DocumentException, IOException {
@@ -43,9 +47,11 @@ public class Csv2Gdst implements Callable<Integer> {
     Document document = saxReader.read(gdstFile);
     MoveCommand moveCommand = new MoveCommand(document);
     for (File csvFile : csvFiles) {
+      System.out.println("Parsing " + csvFile.getAbsolutePath());
       InputStream csvInputStream = new FileInputStream(csvFile);
       BOMInputStream bomInputStream = new BOMInputStream(csvInputStream);
-      CSVParser csvParser = CSVParser.parse(bomInputStream, StandardCharsets.UTF_8, CSVFormat.DEFAULT.withHeader().withNullString("").withTrim(true));
+      CSVParser csvParser = CSVParser.parse(bomInputStream, StandardCharsets.UTF_8,
+        CSVFormat.DEFAULT.withHeader().withNullString("").withTrim(true));
       moveCommand.moveDataWith(handlingMode, csvParser);
       handlingMode = MoveCommand.MoveDataType.extend;
       bomInputStream.close();

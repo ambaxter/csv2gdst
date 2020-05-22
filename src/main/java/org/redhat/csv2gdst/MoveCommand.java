@@ -2,12 +2,10 @@ package org.redhat.csv2gdst;
 
 import org.apache.commons.csv.CSVParser;
 import org.dom4j.*;
-import org.redhat.csv2gdst.headers.DataColumnHeader;
-import org.redhat.csv2gdst.headers.DescriptionHeader;
-import org.redhat.csv2gdst.headers.RowNumHeader;
-import org.redhat.csv2gdst.headers.StringHeader;
+import org.redhat.csv2gdst.headers.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -19,8 +17,8 @@ public class MoveCommand {
 
   Document document;
   Element documentRoot;
-  List<DataColumnHeader> dataHeaders;
-  RowNumHeader rowNumHeader = null;
+  List<ExtendRowWithRecord> dataHeaders;
+  AutoIncrementIntHeader autoIncrementIntHeader = null;
 
   public MoveCommand(Document gdstFile) {
     document = gdstFile;
@@ -35,56 +33,89 @@ public class MoveCommand {
         break;
       case extend:
         int maxRow = findMaxRows();
-        rowNumHeader.setCurrentRowNum(maxRow);
+        autoIncrementIntHeader.setCurrentRowNum(maxRow);
         break;
     }
     extendData(dataHeaders, csvParser);
   }
 
+  StringHeader handleMetaDataColumn(Node node, int columnNumber) {
+    String varName = node.selectSingleNode("metadata").getStringValue();
+    return new StringHeader(node.getName(), varName, columnNumber, DataColumnType.Metadata);
+  }
 
-  DataColumnHeader handleColumnNode(Node node, int columnNumber) {
+  DataColumnHeader handleTypedDefaultColumn(Node node, int columnNumber, String varNameField, DataColumnType dataColumnType) {
+    String fieldType = node.selectSingleNode("typedDefaultValue/dataType").getStringValue();
+    String varName = node.selectSingleNode(varNameField).getStringValue();
+    return createDataColumnHeader(node.getName(), columnNumber, dataColumnType, fieldType, varName);
+  }
+
+  DataColumnHeader handleVariableColumn(Node node, int columnNumber, DataColumnType dataColumnType) {
     String fieldType = node.selectSingleNode("fieldType").getStringValue();
     String varName = node.selectSingleNode("varName").getStringValue();
+    return createDataColumnHeader(node.getName(), columnNumber, dataColumnType, fieldType, varName);
+  }
 
+  private DataColumnHeader createDataColumnHeader(String nodeName, int columnNumber, DataColumnType dataColumnType, String fieldType, String varName) {
     switch (fieldType.toLowerCase()) {
+      case "boolean":
+        return new BooleanHeader(nodeName, varName, columnNumber, dataColumnType);
+      case "integer":
+      case "numeric_integer":
+        return new NumericHeader(nodeName, varName, columnNumber, dataColumnType, NumericType.Integer);
+      case "bigdecimal":
+        return new NumericHeader(nodeName, varName, columnNumber, dataColumnType, NumericType.BigDecimal);
+      case "long":
+      case "numeric_long":
+        return new NumericHeader(nodeName, varName, columnNumber, dataColumnType, NumericType.Long);
+      case "date":
+        return new DateHeader(nodeName, varName, columnNumber, dataColumnType);
       case "string":
-        return new StringHeader(node.getName(), columnNumber, varName);
+      case "comparable":
+        return new StringHeader(nodeName, varName, columnNumber, dataColumnType);
       default:
         throw new RuntimeException("Unexpected type value: " + fieldType);
     }
-
   }
 
-  List<DataColumnHeader> readDataHeaders() {
+  List<ExtendRowWithRecord> readDataHeaders() {
     AtomicInteger columnCounter = new AtomicInteger(0);
     String columnNodesXpathString = "rowNumberCol" +
       "|descriptionCol" +
       "|metadataCols/*" +
       "|attributeCols/*" +
       "|conditionPatterns/org.drools.workbench.models.guided.dtable.shared.model.BRLConditionColumn/childColumns/org.drools.workbench.models.guided.dtable.shared.model.BRLConditionVariableColumn" +
-      "|actionCols/org.drools.workbench.models.guided.dtable.shared.model.BRLActionColumn/childColumns/org.drools.workbench.models.guided.dtable.shared.model.BRLActionVariableColumn";
+      "|actionCols/org.drools.workbench.models.guided.dtable.shared.model.BRLActionColumn/childColumns/org.drools.workbench.models.guided.dtable.shared.model.BRLActionVariableColumn" +
+      "|actionCols/set-field-col52";
     XPath columnNodesSelector = DocumentHelper.createXPath(columnNodesXpathString);
     List<Node> columnNodes = columnNodesSelector.selectNodes(documentRoot);
-    List<DataColumnHeader> dataHeaders = columnNodes.stream()
+    List<ExtendRowWithRecord> dataHeaders = columnNodes.stream()
       .map(node -> {
         int columnNumber = columnCounter.incrementAndGet();
         switch (node.getName()) {
           case "rowNumberCol":
-            return new RowNumHeader(node.getName(), columnNumber);
+            return new AutoIncrementIntHeader(node.getName(), node.getName(), columnNumber, DataColumnType.RowNum);
           case "descriptionCol":
-            return new DescriptionHeader(node.getName(), columnNumber);
+            return new UniqueHeader(new StringHeader(node.getName(), node.getName(), columnNumber, DataColumnType.Description));
+          case "metadata-column52":
+            return handleMetaDataColumn(node, columnNumber);
+          case "attribute-column52":
+            return handleTypedDefaultColumn(node, columnNumber, "attribute", DataColumnType.Attribute);
           case "org.drools.workbench.models.guided.dtable.shared.model.BRLConditionVariableColumn":
+            return handleVariableColumn(node, columnNumber, DataColumnType.Condition);
           case "org.drools.workbench.models.guided.dtable.shared.model.BRLActionVariableColumn":
-            return handleColumnNode(node, columnNumber);
+            return handleVariableColumn(node, columnNumber, DataColumnType.Action);
+          case "set-field-col52":
+            return handleTypedDefaultColumn(node, columnNumber, "factField", DataColumnType.Action);
           default:
             throw new RuntimeException("Encountered unsupported column type: " + node.getName());
         }
       })
       .collect(Collectors.toList());
 
-    rowNumHeader = dataHeaders.stream()
-      .filter(RowNumHeader.class::isInstance)
-      .map(RowNumHeader.class::cast)
+    autoIncrementIntHeader = dataHeaders.stream()
+      .filter(h -> DataColumnType.RowNum.equals(h.getDataColumnType()) && h instanceof AutoIncrementIntHeader)
+      .map(AutoIncrementIntHeader.class::cast)
       .findAny()
       .orElseThrow(() -> new RuntimeException("Unable to find RowNum column"));
 
@@ -93,7 +124,7 @@ public class MoveCommand {
 
   int findMaxRows() {
     int maxRowNum = 0;
-    XPath rowNumSelector = DocumentHelper.createXPath("data/list/value[" + rowNumHeader.getColumnNumber() + "]");
+    XPath rowNumSelector = DocumentHelper.createXPath("data/list/value[" + autoIncrementIntHeader.getColumnNumber() + "]");
     List<Node> rowNums = rowNumSelector.selectNodes(documentRoot);
     for (Node rowNumNode : rowNums) {
       String dataType = rowNumNode.selectSingleNode("dataType").getText();
@@ -112,12 +143,13 @@ public class MoveCommand {
     rowNums.forEach(Node::detach);
   }
 
-  void extendData(List<DataColumnHeader> dataHeaders, CSVParser csvParser) {
+  void extendData(List<ExtendRowWithRecord> dataHeaders, CSVParser csvParser) {
     XPath dataSelector = DocumentHelper.createXPath("data");
     Element data = (Element) dataSelector.selectSingleNode(documentRoot);
     csvParser.forEach(csvRecord -> {
       Element list = data.addElement("list");
-      dataHeaders.forEach(header -> header.extendRowWithRecord(list, csvRecord));
+      Map<String, String> csvMap = csvRecord.toMap();
+      dataHeaders.forEach(header -> header.extendRowWithRecord(list, csvRecord.getRecordNumber(), csvMap));
     });
   }
 

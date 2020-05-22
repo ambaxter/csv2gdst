@@ -1,25 +1,19 @@
 package org.redhat.csv2gdst.headers;
 
-import org.apache.commons.csv.CSVRecord;
-import org.dom4j.Element;
-
+import java.util.Map;
 import java.util.Objects;
 
-public class RowNumHeader extends DataColumnHeader {
+public class AutoIncrementIntHeader extends NumericHeader {
   private int currentRowNum = 0;
 
-  public RowNumHeader(String nodeName, int columnNumber) {
-    super(nodeName, columnNumber);
+  public AutoIncrementIntHeader(String nodeName, String varName, int columnNumber, DataColumnType dataColumnType) {
+    super(nodeName, varName, columnNumber, dataColumnType, NumericType.Integer);
   }
 
   @Override
-  public void extendRowWithRecord(Element row, CSVRecord csvRecord) {
+  protected String retrieveRecordValue(Map<String, String> csvRecord) {
     currentRowNum += 1;
-    Element valueNode = row.addElement("value");
-    valueNode.addElement("valueNumeric").addAttribute("class", "int").setText(Integer.toString(currentRowNum));
-    valueNode.addElement("valueString").setText("");
-    valueNode.addElement("dataType").setText("NUMERIC_INTEGER");
-    valueNode.addElement("isOtherwise").setText("false");
+    return Integer.toString(currentRowNum);
   }
 
   public int getCurrentRowNum() {
@@ -35,7 +29,7 @@ public class RowNumHeader extends DataColumnHeader {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     if (!super.equals(o)) return false;
-    RowNumHeader that = (RowNumHeader) o;
+    AutoIncrementIntHeader that = (AutoIncrementIntHeader) o;
     return currentRowNum == that.currentRowNum;
   }
 
@@ -46,8 +40,8 @@ public class RowNumHeader extends DataColumnHeader {
 
   @Override
   public String toString() {
-    return "RowNumHeader{" +
+    return "AutoIncrementHeader{" +
       "currentRowNum=" + currentRowNum +
-      '}';
+      "} " + super.toString();
   }
 }

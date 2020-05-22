@@ -4,9 +4,11 @@ import org.dom4j.Element;
 
 import java.util.Map;
 
-public class StringHeader extends DataColumnHeader {
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
-  public StringHeader(String nodeName, String varName, int columnNumber, DataColumnType dataColumnType) {
+public class DateHeader extends DataColumnHeader {
+
+  public DateHeader(String nodeName, String varName, int columnNumber, DataColumnType dataColumnType) {
     super(nodeName, varName, columnNumber, dataColumnType);
   }
 
@@ -14,13 +16,16 @@ public class StringHeader extends DataColumnHeader {
   public void extendRowWithRecord(Element row, long recordNum, Map<String, String> csvRecord) {
     String recordValue = retrieveRecordValue(csvRecord);
     Element valueNode = row.addElement("value");
-    valueNode.addElement("valueString").setText(recordValue);
-    valueNode.addElement("dataType").setText("STRING");
+    if (!isBlank(recordValue)) {
+      valueNode.addElement("valueDate").setText(recordValue);
+    }
+    valueNode.addElement("valueString").setText("");
+    valueNode.addElement("dataType").setText("DATE");
     valueNode.addElement("isOtherwise").setText("false");
   }
 
   @Override
   public String toString() {
-    return "StringHeader{} " + super.toString();
+    return "DateHeader{} " + super.toString();
   }
 }
