@@ -32,6 +32,10 @@ public class UniqueHeader implements ExtendRowWithRecord {
     return delegate;
   }
 
+  public void addExistingValue(String value) {
+    uniqueValues.add(value);
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;

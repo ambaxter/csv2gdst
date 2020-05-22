@@ -7,6 +7,7 @@ import org.redhat.csv2gdst.headers.*;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class MoveCommand {
@@ -18,7 +19,7 @@ public class MoveCommand {
   Document document;
   Element documentRoot;
   List<ExtendRowWithRecord> dataHeaders;
-  AutoIncrementIntHeader autoIncrementIntHeader = null;
+  AutoIncrementIntHeader rowNumHeader = null;
 
   public MoveCommand(Document gdstFile) {
     document = gdstFile;
@@ -32,8 +33,7 @@ public class MoveCommand {
         clearDataRows();
         break;
       case extend:
-        int maxRow = findMaxRows();
-        autoIncrementIntHeader.setCurrentRowNum(maxRow);
+        updateHeadersWithExistingData();
         break;
     }
     extendData(dataHeaders, csvParser);
@@ -113,7 +113,7 @@ public class MoveCommand {
       })
       .collect(Collectors.toList());
 
-    autoIncrementIntHeader = dataHeaders.stream()
+    rowNumHeader = dataHeaders.stream()
       .filter(h -> DataColumnType.RowNum.equals(h.getDataColumnType()) && h instanceof AutoIncrementIntHeader)
       .map(AutoIncrementIntHeader.class::cast)
       .findAny()
@@ -122,19 +122,40 @@ public class MoveCommand {
     return dataHeaders;
   }
 
-  int findMaxRows() {
-    int maxRowNum = 0;
-    XPath rowNumSelector = DocumentHelper.createXPath("data/list/value[" + autoIncrementIntHeader.getColumnNumber() + "]");
-    List<Node> rowNums = rowNumSelector.selectNodes(documentRoot);
-    for (Node rowNumNode : rowNums) {
+  void updateHeadersWithExistingData() {
+    XPath existingDataListsSelector = DocumentHelper.createXPath("data/list");
+    List<Node> existingDataLists = existingDataListsSelector.selectNodes(documentRoot);
+
+    XPath rowNumSelector = DocumentHelper.createXPath("value["+rowNumHeader.getColumnNumber() + "]" );
+
+    Map<UniqueHeader, XPath> uniqueHeaders = dataHeaders.stream()
+      .filter(UniqueHeader.class::isInstance)
+      .map(UniqueHeader.class::cast)
+      .collect(
+        Collectors.toMap(
+          Function.identity(),
+          h -> DocumentHelper.createXPath("value[" + h.getColumnNumber() + "]")
+        )
+      );
+
+    for(Node list : existingDataLists) {
+
+      // Handle maxRow search
+      Node rowNumNode = rowNumSelector.selectSingleNode(list);
       String dataType = rowNumNode.selectSingleNode("dataType").getText();
       if (!"numeric_integer".equalsIgnoreCase(dataType)) {
         throw new RuntimeException("I am not on the rowNum column. Expected 'numeric_integer' datatype. Found: " + dataType);
       }
-      maxRowNum = Math.max(Integer.parseInt(rowNumNode.selectSingleNode("valueNumeric").getText()), maxRowNum);
-    }
+      int maxRowNum = Math.max(rowNumHeader.getCurrentRowNum(), Integer.parseInt(rowNumNode.selectSingleNode("valueNumeric").getText()));
+      rowNumHeader.setCurrentRowNum(maxRowNum);
 
-    return maxRowNum;
+      uniqueHeaders.forEach( (h, path) -> {
+        Node uniqueNode = path.selectSingleNode(list);
+        String valueString = uniqueNode.selectSingleNode("valueString").getText();
+        h.addExistingValue(valueString);
+      });
+
+    }
   }
 
   void clearDataRows() {
