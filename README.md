@@ -27,7 +27,7 @@ To create a template CSV file complete with existing data, use the `convert` sub
 java -jar target/csv2gdst.jar convert -i=<input_gdst_file> -o=<output_csv_file>
 ```
 
-To create a template CSV file with headers only, use the `convert` sub-command with the -h option
+To create a template CSV file with headers only, use the `convert` sub-command with the -t option
 
 ```shell script
 java -jar target/csv2gdst.jar convert -t -i=<input_gdst_file> -o=<output_csv_file>
