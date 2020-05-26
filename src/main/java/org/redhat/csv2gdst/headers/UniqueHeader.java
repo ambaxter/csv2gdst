@@ -1,12 +1,13 @@
 package org.redhat.csv2gdst.headers;
 
 import org.dom4j.Element;
+import org.dom4j.Node;
 
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 
-public class UniqueHeader implements ExtendRowWithRecord {
+public class UniqueHeader implements HeaderDefinition {
 
   final protected DataColumnHeader delegate;
   final protected HashSet<String> uniqueValues = new HashSet<>();
@@ -26,6 +27,11 @@ public class UniqueHeader implements ExtendRowWithRecord {
       uniqueValues.add(recordValue);
     }
     delegate.extendRowWithRecord(row, recordNum, csvRecord);
+  }
+
+  @Override
+  public String readRecordValue(Node valueNode) {
+    return delegate.readRecordValue(valueNode);
   }
 
   public DataColumnHeader getDelegate() {

@@ -4,24 +4,31 @@ import org.apache.commons.csv.CSVParser;
 import org.dom4j.*;
 import org.redhat.csv2gdst.headers.*;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static org.apache.commons.lang3.ObjectUtils.defaultIfNull;
+
 public class GdstDocument {
   Document document;
   Element documentRoot;
-  List<ExtendRowWithRecord> dataHeaders;
+  List<HeaderDefinition> dataHeaders;
   AutoIncrementIntHeader rowNumHeader = null;
 
   public GdstDocument(Document gdstFile) {
     document = gdstFile;
     documentRoot = document.getRootElement();
     dataHeaders = readDataHeaders();
+
   }
 
+  public List<HeaderDefinition> getDataHeaders() {
+    return dataHeaders;
+  }
 
   StringHeader handleMetaDataColumn(Node node, int columnNumber) {
     String varName = node.selectSingleNode("metadata").getStringValue();
@@ -62,7 +69,7 @@ public class GdstDocument {
     }
   }
 
-  List<ExtendRowWithRecord> readDataHeaders() {
+  List<HeaderDefinition> readDataHeaders() {
     AtomicInteger columnCounter = new AtomicInteger(0);
     String columnNodesXpathString = "rowNumberCol" +
       "|descriptionCol" +
@@ -73,7 +80,7 @@ public class GdstDocument {
       "|actionCols/set-field-col52";
     XPath columnNodesSelector = DocumentHelper.createXPath(columnNodesXpathString);
     List<Node> columnNodes = columnNodesSelector.selectNodes(documentRoot);
-    List<ExtendRowWithRecord> dataHeaders = columnNodes.stream()
+    List<HeaderDefinition> dataHeaders = columnNodes.stream()
       .map(node -> {
         int columnNumber = columnCounter.incrementAndGet();
         switch (node.getName()) {
@@ -142,18 +149,23 @@ public class GdstDocument {
     }
   }
 
+  List<Node> retrieveDataRows() {
+    XPath rowSelector = DocumentHelper.createXPath("data/*");
+    List<Node> rows = defaultIfNull(rowSelector.selectNodes(documentRoot), Collections.emptyList());
+    return rows;
+  }
+
 
   void clearDataRows() {
-    XPath rowNumSelector = DocumentHelper.createXPath("data/*");
-    List<Node> rowNums = rowNumSelector.selectNodes(documentRoot);
-    rowNums.forEach(Node::detach);
+    retrieveDataRows()
+      .forEach(Node::detach);
   }
 
   void extendData(CSVParser csvParser) {
     extendData(dataHeaders, csvParser);
   }
 
-  void extendData(List<ExtendRowWithRecord> dataHeaders, CSVParser csvParser) {
+  void extendData(List<HeaderDefinition> dataHeaders, CSVParser csvParser) {
     XPath dataSelector = DocumentHelper.createXPath("data");
     Element data = (Element) dataSelector.selectSingleNode(documentRoot);
     csvParser.forEach(csvRecord -> {

@@ -3,11 +3,10 @@ package org.redhat.csv2gdst;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.io.input.BOMInputStream;
-import org.dom4j.*;
+import org.dom4j.Document;
 import org.dom4j.io.OutputFormat;
 import org.dom4j.io.SAXReader;
 import org.dom4j.io.XMLWriter;
-import org.redhat.csv2gdst.headers.*;
 import picocli.CommandLine;
 
 import java.io.File;
@@ -18,11 +17,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-public class MoveCommand implements Callable<Integer> {
 
-  @CommandLine.Option(names = "-m", defaultValue = "extend",
-    description = "Handling mode for existing gdst data: ${COMPLETION-CANDIDATES} (default: ${DEFAULT-VALUE})")
-  MoveDataType handlingMode;
+@CommandLine.Command(name = "import", description = "Import data from a CSV to a GDST file", mixinStandardHelpOptions = true)
+public class ImportCommand implements Callable<Integer> {
+
+  @CommandLine.Option(names = "-r", description = "Replace existing data")
+  boolean replaceData;
 
   @CommandLine.Option(names = "-i", required = true, paramLabel = "INPUT",
     description = "input gdst file")
@@ -33,22 +33,15 @@ public class MoveCommand implements Callable<Integer> {
   File outGdstFile;
 
   @CommandLine.Parameters(arity = "1..*", paramLabel = "CSVs",
-    description = "one ore more CSV files to import")
+    description = "one or more CSV files to import")
   List<File> csvFiles;
 
-  public enum MoveDataType {
-    replace, extend
+  void replaceData(GdstDocument gdstDocument, CSVParser csvParser) {
+    gdstDocument.clearDataRows();
   }
 
-  void moveDataWith(GdstDocument gdstDocument, MoveDataType moveDataType, CSVParser csvParser) {
-    switch (moveDataType) {
-      case replace:
-        gdstDocument.clearDataRows();
-        break;
-      case extend:
-        gdstDocument.updateHeadersWithExistingData();
-        break;
-    }
+  void extendData(GdstDocument gdstDocument, CSVParser csvParser) {
+    gdstDocument.updateHeadersWithExistingData();
     gdstDocument.extendData(csvParser);
   }
 
@@ -64,8 +57,12 @@ public class MoveCommand implements Callable<Integer> {
         BOMInputStream bomInputStream = new BOMInputStream(csvInputStream);
         CSVParser csvParser = CSVParser.parse(bomInputStream, StandardCharsets.UTF_8,
           CSVFormat.DEFAULT.withHeader().withNullString("").withTrim(true));
-        moveDataWith(gdstDocument, handlingMode, csvParser);
-        handlingMode = MoveCommand.MoveDataType.extend;
+        if(replaceData) {
+          replaceData(gdstDocument, csvParser);
+        } else {
+          extendData(gdstDocument, csvParser);
+        }
+        replaceData = false;
         bomInputStream.close();
       }
 

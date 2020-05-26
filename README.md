@@ -21,16 +21,28 @@ This is a row,1,2,3
 This is another row,4,5,6
 ``` 
 
-## Run
+To create a template CSV file complete with existing data, use the `convert` sub-command
 
 ```shell script
-java -jar target/csv2gdst.jar -i=<input_gdst_file> -o=<output_gdst_file> csv_file_1 csv_file_2
+java -jar target/csv2gdst.jar convert -i=<input_gdst_file> -o=<output_csv_file>
 ```
 
-By default, existing data entries will be left as is. To replace the data entries, add the `-m replace` option.
+To create a template CSV file with headers only, use the `convert` sub-command with the -h option
 
 ```shell script
-java -jar target/csv2gdst.jar -i=<input_gdst_file> -m replace -o=<output_gdst_file> csv_file_1 csv_file_2
+java -jar target/csv2gdst.jar convert -t -i=<input_gdst_file> -o=<output_csv_file>
+```
+
+## Import
+
+```shell script
+java -jar target/csv2gdst.jar import -i=<input_gdst_file> -o=<output_gdst_file> <csv_file>
+```
+
+By default, existing data entries will be left as is. To replace the data entries, add the `-r` option.
+
+```shell script
+java -jar target/csv2gdst.jar import -i=<input_gdst_file> -r -o=<output_gdst_file> <csv_file>
 ```
 
 # License

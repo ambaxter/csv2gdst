@@ -1,8 +1,10 @@
 package org.redhat.csv2gdst.headers;
 
 import org.dom4j.Element;
+import org.dom4j.Node;
 
 import java.util.Map;
+import java.util.Optional;
 
 public class StringHeader extends DataColumnHeader {
 
@@ -17,6 +19,14 @@ public class StringHeader extends DataColumnHeader {
     valueNode.addElement("valueString").setText(recordValue);
     valueNode.addElement("dataType").setText("STRING");
     valueNode.addElement("isOtherwise").setText("false");
+  }
+
+  @Override
+  public String readRecordValue(Node valueNode) {
+    return Optional.of(valueNode)
+      .map(n -> n.selectSingleNode("valueString"))
+      .map(Node::getText)
+      .orElse("");
   }
 
   @Override

@@ -1,9 +1,11 @@
 package org.redhat.csv2gdst.headers;
 
 import org.dom4j.Element;
+import org.dom4j.Node;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -31,6 +33,14 @@ public class NumericHeader extends DataColumnHeader {
     valueNode.addElement("valueString").setText("");
     valueNode.addElement("dataType").setText(numericType.getDataType());
     valueNode.addElement("isOtherwise").setText("false");
+  }
+
+  @Override
+  public String readRecordValue(Node valueNode) {
+    return Optional.of(valueNode)
+      .map(n -> n.selectSingleNode("valueNumeric"))
+      .map(Node::getText)
+      .orElse("");
   }
 
   public NumericType getNumericType() {
