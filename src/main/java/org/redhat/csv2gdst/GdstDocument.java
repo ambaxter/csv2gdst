@@ -68,8 +68,9 @@ public class GdstDocument {
       case "date":
         return new DateHeader(nodeName, varName, columnNumber, dataColumnType);
       case "string":
-      case "comparable":
         return new StringHeader(nodeName, varName, columnNumber, dataColumnType);
+      case "comparable":
+        return new ComparableHeader(nodeName, varName, columnNumber, dataColumnType);
       default:
         throw new RuntimeException("Unexpected type value: " + fieldType);
     }

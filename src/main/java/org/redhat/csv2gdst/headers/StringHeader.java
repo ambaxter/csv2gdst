@@ -1,32 +1,30 @@
 package org.redhat.csv2gdst.headers;
 
+import org.apache.commons.text.StringEscapeUtils;
 import org.dom4j.Element;
 import org.dom4j.Node;
 
-import java.util.Map;
 import java.util.Optional;
 
-public class StringHeader extends DataColumnHeader {
+import static org.apache.commons.lang3.StringUtils.isBlank;
+
+public class StringHeader extends ComparableHeader {
 
   public StringHeader(String nodeName, String varName, int columnNumber, DataColumnType dataColumnType) {
     super(nodeName, varName, columnNumber, dataColumnType);
   }
 
   @Override
-  public void extendRowWithRecord(Element row, long recordNum, Map<String, String> csvRecord) {
-    String recordValue = retrieveRecordValue(csvRecord);
-    Element valueNode = row.addElement("value");
-    valueNode.addElement("valueString").setText(recordValue);
-    valueNode.addElement("dataType").setText("STRING");
-    valueNode.addElement("isOtherwise").setText("false");
-  }
-
-  @Override
   public String readRecordValue(Node valueNode) {
-    return Optional.of(valueNode)
+    String recordValue =  Optional.of(valueNode)
       .map(n -> n.selectSingleNode("valueString"))
       .map(Node::getText)
+      .map(StringEscapeUtils::unescapeXml)
       .orElse("");
+    if(!isBlank(recordValue) && !recordValue.startsWith("\"&quot;\"")) {
+      recordValue = "&quot;" + recordValue + "&quot;";
+    }
+    return recordValue;
   }
 
   @Override

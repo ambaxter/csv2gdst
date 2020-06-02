@@ -6,7 +6,7 @@
 
   <groupId>org.redhat.csv2gdst</groupId>
   <artifactId>csv2gdst</artifactId>
-  <version>0.9.1</version>
+  <version>0.9.3</version>
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
@@ -36,6 +36,11 @@
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
       <version>2.6</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-text</artifactId>
+      <version>1.8</version>
     </dependency>
     <dependency>
       <groupId>org.dom4j</groupId>
