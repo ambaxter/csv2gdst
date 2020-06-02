@@ -12,6 +12,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.apache.commons.lang3.ObjectUtils.defaultIfNull;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 public class GdstDocument {
   Document document;
@@ -44,6 +45,11 @@ public class GdstDocument {
   DataColumnHeader handleVariableColumn(Node node, int columnNumber, DataColumnType dataColumnType) {
     String fieldType = node.selectSingleNode("fieldType").getStringValue();
     String varName = node.selectSingleNode("varName").getStringValue();
+    // handle cases where an object matched, but no variables are used
+    if(isBlank(varName)) {
+      varName = node.selectSingleNode("header").getStringValue();
+
+    }
     return createDataColumnHeader(node.getName(), columnNumber, dataColumnType, fieldType, varName);
   }
 
