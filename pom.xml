@@ -6,7 +6,7 @@
 
   <groupId>org.redhat.csv2gdst</groupId>
   <artifactId>csv2gdst</artifactId>
-  <version>0.9.3</version>
+  <version>0.9.4</version>
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>

@@ -36,20 +36,17 @@ public class ImportCommand implements Callable<Integer> {
     description = "one or more CSV files to import")
   List<File> csvFiles;
 
-  void replaceData(GdstDocument gdstDocument, CSVParser csvParser) {
-    gdstDocument.clearDataRows();
-  }
-
-  void extendData(GdstDocument gdstDocument, CSVParser csvParser) {
-    gdstDocument.updateHeadersWithExistingData();
-    gdstDocument.extendData(csvParser);
-  }
-
     @Override
     public Integer call() throws Exception {
       SAXReader saxReader = new SAXReader();
       Document document = saxReader.read(gdstFile);
       GdstDocument gdstDocument = new GdstDocument(document);
+
+      if(replaceData) {
+        gdstDocument.clearDataRows();
+      } else {
+        gdstDocument.updateHeadersWithExistingData();
+      }
 
       for (File csvFile : csvFiles) {
         System.out.println("Parsing " + csvFile.getAbsolutePath());
@@ -57,12 +54,7 @@ public class ImportCommand implements Callable<Integer> {
         BOMInputStream bomInputStream = new BOMInputStream(csvInputStream);
         CSVParser csvParser = CSVParser.parse(bomInputStream, StandardCharsets.UTF_8,
           CSVFormat.DEFAULT.withHeader().withNullString("").withTrim(true));
-        if(replaceData) {
-          replaceData(gdstDocument, csvParser);
-        } else {
-          extendData(gdstDocument, csvParser);
-        }
-        replaceData = false;
+        gdstDocument.extendData(csvParser);
         bomInputStream.close();
       }
 
@@ -71,6 +63,7 @@ public class ImportCommand implements Callable<Integer> {
       outputFormat.setSuppressDeclaration(true);
       outputFormat.setTrimText(true);
       XMLWriter xmlWriter = new XMLWriter(outputFormat);
+      xmlWriter.setEscapeText(false);
       FileOutputStream outputStream = new FileOutputStream(outGdstFile);
       xmlWriter.setOutputStream(outputStream);
       xmlWriter.write(document);

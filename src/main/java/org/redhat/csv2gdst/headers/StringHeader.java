@@ -1,12 +1,8 @@
 package org.redhat.csv2gdst.headers;
 
-import org.apache.commons.text.StringEscapeUtils;
-import org.dom4j.Element;
-import org.dom4j.Node;
+import java.util.Map;
 
-import java.util.Optional;
-
-import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.apache.commons.lang3.StringUtils.*;
 
 public class StringHeader extends ComparableHeader {
 
@@ -15,14 +11,10 @@ public class StringHeader extends ComparableHeader {
   }
 
   @Override
-  public String readRecordValue(Node valueNode) {
-    String recordValue =  Optional.of(valueNode)
-      .map(n -> n.selectSingleNode("valueString"))
-      .map(Node::getText)
-      .map(StringEscapeUtils::unescapeXml)
-      .orElse("");
-    if(!isBlank(recordValue) && !recordValue.startsWith("\"&quot;\"")) {
-      recordValue = "&quot;" + recordValue + "&quot;";
+  String retrieveRecordValue(Map<String, String> csvRecord) {
+    String recordValue = super.retrieveRecordValue(csvRecord);
+    if(!isBlank(recordValue) && !DataColumnType.Description.equals(dataColumnType)) {
+      recordValue = wrapIfMissing(recordValue, "\"");
     }
     return recordValue;
   }

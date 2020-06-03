@@ -1,5 +1,6 @@
 package org.redhat.csv2gdst.headers;
 
+import org.apache.commons.text.StringEscapeUtils;
 import org.dom4j.Element;
 import org.dom4j.Node;
 
@@ -15,6 +16,7 @@ public class ComparableHeader extends DataColumnHeader {
   @Override
   public void extendRowWithRecord(Element row, long recordNum, Map<String, String> csvRecord) {
     String recordValue = retrieveRecordValue(csvRecord);
+    recordValue = StringEscapeUtils.escapeXml11(recordValue);
     Element valueNode = row.addElement("value");
     valueNode.addElement("valueString").setText(recordValue);
     valueNode.addElement("dataType").setText("STRING");
