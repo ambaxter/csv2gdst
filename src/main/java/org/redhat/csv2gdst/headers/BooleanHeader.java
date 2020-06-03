@@ -16,7 +16,7 @@ public class BooleanHeader extends DataColumnHeader {
 
   @Override
   public void extendRowWithRecord(Element row, long recordNum, Map<String, String> csvRecord) {
-    String recordValue = retrieveRecordValue(csvRecord);
+    String recordValue = retrieveRecordValue(csvRecord).toLowerCase();
     Element valueNode = row.addElement("value");
     if (!isBlank(recordValue)) {
       if (!("true".equals(recordValue) || "false".equals(recordValue))) {

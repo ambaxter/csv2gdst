@@ -29,7 +29,7 @@ public class ConvertCommand implements Callable<Integer> {
   File gdstFile;
 
   @CommandLine.Option(names = "-o", required = true, paramLabel = "OUTPUT",
-    description = "input gdst file")
+    description = "output csv file")
   File csvFile;
 
   @CommandLine.Option(names = "-t", description = "Output header only")
