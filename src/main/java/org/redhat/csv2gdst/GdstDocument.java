@@ -69,6 +69,7 @@ public class GdstDocument {
         return new DateHeader(nodeName, varName, columnNumber, dataColumnType);
       case "string":
         return new StringHeader(nodeName, varName, columnNumber, dataColumnType);
+      case "object":
       case "comparable":
         return new ComparableHeader(nodeName, varName, columnNumber, dataColumnType);
       default:
